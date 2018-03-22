@@ -9,6 +9,7 @@ from keras.preprocessing.image import ImageDataGenerator
 
 from utils import ensure_dir, plot_training_history, PrintModel
 from models import *
+from cutout_random_erasing.random_eraser import get_random_eraser
 
 
 class Config(object):
@@ -111,7 +112,14 @@ class Model(object):
 
     def _create_data_generators(self):
         for dataset in ('train', 'val', 'test'):
-            generator = ImageDataGenerator()
+            generator = ImageDataGenerator(
+                preprocessing_function=get_random_eraser(v_l=0, v_h=1),
+                rotation_range=8,
+                width_shift_range=0.08,
+                height_shift_range=0.08,
+                shear_range=0.3,
+                zoom_range=0.08,
+                horizontal_flip=True)
                 # zca_whitening=True,
                 # featurewise_center=True)#False)
                 # featurewise_std_normalization=False)#True)
