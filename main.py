@@ -17,7 +17,7 @@ class Config(object):
         self.image_size = (28, 28, 1)
         self.model_func = dense_net_bc_40#dense_net_bc_wide_40
         self.model_name = self.model_func.__name__
-        self.lr = 1e-2
+        self.lr = 1e-1
         self.batch_size = 256
         self.epochs = 100
 
@@ -113,7 +113,7 @@ class Model(object):
     def _create_data_generators(self):
         for dataset in ('train', 'val', 'test'):
             generator = ImageDataGenerator(
-                preprocessing_function=get_random_eraser(v_l=0, v_h=1),
+                preprocessing_function=get_random_eraser(v_l=0.0, v_h=1.0),
                 rotation_range=8,
                 width_shift_range=0.08,
                 height_shift_range=0.08,
