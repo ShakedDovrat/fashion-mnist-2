@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.datasets import fashion_mnist
 from keras.preprocessing.image import ImageDataGenerator
 
@@ -17,8 +17,8 @@ class Config(object):
         self.model_func = deep_model
         self.model_name = self.model_func.__name__
         self.lr = 1e-2
-        self.batch_size = 128
-        self.epochs = 5
+        self.batch_size = 256
+        self.epochs = 100
 
 
 class Model(object):
@@ -85,8 +85,8 @@ class Model(object):
                                             verbose=1,
                                             save_best_only=True,
                                             mode='max')
-
-        return [checkpoint_writer]
+        reduce_lr = ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=10, verbose=1, epsilon=1e-3)
+        return [checkpoint_writer, reduce_lr]
 
     def _load_data(self):
         trainset, testset = fashion_mnist.load_data()

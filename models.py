@@ -28,7 +28,7 @@ def deep_model(image_size):
     # model.add(MaxPool2D((2, 2)))
     # model.add(Conv2D(64, (3, 3), padding='valid', activation='relu'))
     # model.add(Conv2D(64, (3, 3), padding='valid', activation='relu'))
-    model.add(Flatten())
+    model.add(GlobalAveragePooling2D())
     model.add(Dense(1024, activation='relu'))
     model.add(Dense(10, activation='softmax'))
     return model
