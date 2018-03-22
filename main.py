@@ -15,7 +15,7 @@ from cutout_random_erasing.random_eraser import get_random_eraser
 class Config(object):
     def __init__(self):
         self.image_size = (28, 28, 1)
-        self.model_func = dense_net_bc_40  # dense_net_bc_wide_40
+        self.model_func = dense_net_bc_wide_40  # dense_net_bc_40
         self.model_name = self.model_func.__name__
         self.lr = 1e-1
         self.batch_size = 256

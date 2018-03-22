@@ -36,15 +36,15 @@ def deep_model(input_shape):
     return model
 
 
-def dense_net_bc_wide_40(input_shape):  # 1.5M params
-    base = densenet.DenseNet(input_shape=input_shape, depth=40, nb_dense_block=3, growth_rate=36,
+def dense_net_bc_wide_40(input_shape):
+    base = densenet.DenseNet(input_shape=input_shape, depth=40, nb_dense_block=3, growth_rate=24,
                              bottleneck=True, reduction=0.5, dropout_rate=0.0,
                              weight_decay=1e-4, subsample_initial_block=False, include_top=False, classes=10)
     x = Dense(10, activation='softmax')(base.layers[-1].output)
     return Model(inputs=base.input, outputs=x)
 
 
-def dense_net_bc_40(input_shape):  # 1.5M params
+def dense_net_bc_40(input_shape):
     base = densenet.DenseNet(input_shape=input_shape, depth=40, nb_dense_block=3, growth_rate=12,
                              bottleneck=True, reduction=0.5, dropout_rate=0.0,
                              weight_decay=1e-4, subsample_initial_block=False, include_top=False, classes=10)
