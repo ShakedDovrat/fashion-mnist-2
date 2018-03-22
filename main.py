@@ -22,39 +22,67 @@ class Config(object):
 
 class Model(object):
     def __init__(self):
-        self.logs_dir = 'logs'
-        ensure_dir(self.logs_dir)
+        self._logs_dir = 'logs'
+        ensure_dir(self._logs_dir)
         self.c = Config()
-        self.run_name = Model._get_run_name()
-        self.model = None
-        self.train_set = None
-        self.test_set = None
+        self._run_name = Model._get_run_name()
+        self.model = None  #TODO: self._model?
+        self._datasets = {}
+        self._data_generators = {}
 
     def run(self):
         self.model = self._build_model()
         self._compile_model()
-        self.train_set, self.test_set = Model._load_data()
+        self._load_data()
+        self._create_data_generators()
         history = self.train()
         self._plot_training_history(history)
         self.test()
 
     def train(self):
         callbacks = self._get_callbacks()
-        history = self.model.fit(self.train_set['x'],
-                                 self.train_set['y'],
+        history = self.model.fit(self._datasets['train']['x'],
+                                 self._datasets['train']['y'],
                                  batch_size=self.c.batch_size,
                                  epochs=self.c.epochs,
                                  verbose=1,
                                  callbacks=callbacks,
                                  validation_split=0.2)
+        # history = self.model.fit_generator(
+        #               generator,
+        #               steps_per_epoch=None,
+        #               epochs=1,
+        #               verbose=1,
+        #               callbacks=None,
+        #               validation_data=None,
+        #               validation_steps=None,
+        #               class_weight=None,
+        #               max_queue_size=10,
+        #               workers=1,
+        #               use_multiprocessing=False,
+        #               shuffle=True,
+        #               initial_epoch=0)
         return history
 
     def test(self):
-        metrics_list = self.model.evaluate(self.test_set['x'], self.test_set['y'], verbose=1)
+        metrics_list = self.model.evaluate(self._datasets['test']['x'], self._datasets['test']['y'], verbose=1)
         print('Test results:')
         for name, value in zip(self.model.metrics_names, metrics_list):
             print('{} = {}'.format(name, value))
 
+    def _create_data_generators(self):
+        from keras.preprocessing.image import ImageDataGenerator
+
+        self._data_generators['train'] = ImageDataGenerator(
+            featurewise_center=True,
+            featurewise_std_normalization=True)
+        self._data_generators['train'].fit(self._datasets['train']['x'])
+
+        self._data_generators['test'] = ImageDataGenerator(
+            featurewise_center=True,
+            featurewise_std_normalization=True)
+        self._data_generators['test'].fit(self._datasets['train']['x'])
+        
     @staticmethod
     def _get_run_name():
         return datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
@@ -71,7 +99,7 @@ class Model(object):
         self.model.compile(loss=loss, optimizer=optimizer, metrics=['accuracy'])
 
     def _get_callbacks(self):
-        checkpoint_writer = ModelCheckpoint('{}-weights.h5'.format(self.run_name),
+        checkpoint_writer = ModelCheckpoint('{}-weights.h5'.format(self._run_name),
                                             monitor='val_acc',
                                             verbose=1,
                                             save_best_only=True,
@@ -79,10 +107,10 @@ class Model(object):
 
         return [checkpoint_writer]
 
-    @staticmethod
-    def _load_data():
+    def _load_data(self):
         trainset, testset = fashion_mnist.load_data()
-        return Model._reformat_dataset(trainset), Model._reformat_dataset(testset)
+        self._datasets['train'] = Model._reformat_dataset(trainset)
+        self._datasets['test'] = Model._reformat_dataset(testset)
 
     @staticmethod
     def _reformat_dataset(dataset):
@@ -113,7 +141,7 @@ class Model(object):
         plt.xlabel('epoch')
         plt.legend(['train', 'val'], loc='upper left')
 
-        plt.savefig('logs/{}.png'.format(self.run_name))
+        plt.savefig('logs/{}.png'.format(self._run_name))
 
         plt.show()
 
