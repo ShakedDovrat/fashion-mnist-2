@@ -1,2 +1,5 @@
 *.pyc
+.idea/
+logs/
+*.h5
 
