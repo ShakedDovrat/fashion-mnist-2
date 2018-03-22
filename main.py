@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 from keras.optimizers import Adam, SGD
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 from keras.datasets import fashion_mnist
 from keras.preprocessing.image import ImageDataGenerator
 
@@ -81,7 +81,8 @@ class Model(object):
                                             save_best_only=True,
                                             mode='max')
         reduce_lr = ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=5, verbose=1, epsilon=1e-3)
-        return [checkpoint_writer, reduce_lr]
+        early_stop = EarlyStopping(monitor='val_acc', min_delta=1e-3, patience=15, verbose=1)
+        return [checkpoint_writer, reduce_lr, early_stop]
 
     def _load_data(self):
         trainset, testset = fashion_mnist.load_data()
