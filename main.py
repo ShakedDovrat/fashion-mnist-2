@@ -1,12 +1,13 @@
 import datetime
+import os
 
 import numpy as np
-import matplotlib.pyplot as plt
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint
 from keras.datasets import fashion_mnist
+from keras.preprocessing.image import ImageDataGenerator
 
-from utils import ensure_dir
+from utils import ensure_dir, plot_training_history
 from models import *
 
 
@@ -15,8 +16,8 @@ class Config(object):
         self.image_size = (28, 28, 1)
         self.model_func = shallow_model
         self.model_name = self.model_func.__name__
-        self.lr = 1e-4
-        self.batch_size = 32
+        self.lr = 1e-2
+        self.batch_size = 128
         self.epochs = 5
 
 
@@ -26,7 +27,7 @@ class Model(object):
         ensure_dir(self._logs_dir)
         self.c = Config()
         self._run_name = Model._get_run_name()
-        self.model = None  #TODO: self._model?
+        self.model = None  # TODO: self._model?
         self._datasets = {}
         self._data_generators = {}
 
@@ -36,32 +37,25 @@ class Model(object):
         self._load_data()
         self._create_data_generators()
         history = self.train()
-        self._plot_training_history(history)
-        self.test()
+        plot_training_history(history, os.path.join(self._logs_dir, '{}.png'.format(self._run_name)))
+        # self.test()
 
     def train(self):
         callbacks = self._get_callbacks()
-        history = self.model.fit(self._datasets['train']['x'],
-                                 self._datasets['train']['y'],
-                                 batch_size=self.c.batch_size,
-                                 epochs=self.c.epochs,
-                                 verbose=1,
-                                 callbacks=callbacks,
-                                 validation_split=0.2)
-        # history = self.model.fit_generator(
-        #               generator,
-        #               steps_per_epoch=None,
-        #               epochs=1,
-        #               verbose=1,
-        #               callbacks=None,
-        #               validation_data=None,
-        #               validation_steps=None,
-        #               class_weight=None,
-        #               max_queue_size=10,
-        #               workers=1,
-        #               use_multiprocessing=False,
-        #               shuffle=True,
-        #               initial_epoch=0)
+        # history = self.model.fit(self._datasets['train']['x'],
+        #                          self._datasets['train']['y'],
+        #                          batch_size=self.c.batch_size,
+        #                          epochs=self.c.epochs,
+        #                          verbose=1,
+        #                          callbacks=callbacks,
+        #                          validation_split=0.2)
+        history = self.model.fit_generator(self._data_generators['train'],
+                                           epochs=self.c.epochs,
+                                           verbose=1,
+                                           callbacks=callbacks,
+                                           validation_data=self._data_generators['val'],
+                                           shuffle=True)
+
         return history
 
     def test(self):
@@ -69,7 +63,7 @@ class Model(object):
         print('Test results:')
         for name, value in zip(self.model.metrics_names, metrics_list):
             print('{} = {}'.format(name, value))
-        
+
     @staticmethod
     def _get_run_name():
         return datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')
@@ -96,8 +90,9 @@ class Model(object):
 
     def _load_data(self):
         trainset, testset = fashion_mnist.load_data()
-        self._datasets['train'] = Model._reformat_dataset(trainset)
+        train_and_val = Model._reformat_dataset(trainset)
         self._datasets['test'] = Model._reformat_dataset(testset)
+        self._datasets['train'], self._datasets['val'] = self._split_train_val(train_and_val)
 
     @staticmethod
     def _reformat_dataset(dataset):
@@ -105,45 +100,26 @@ class Model(object):
         x = np.reshape(x, list(x.shape) + [1])
         return {'x': x, 'y': y}
 
+    def _split_train_val(self, train_and_val):
+        num_samples = len(train_and_val['x'])
+        val_size = len(self._datasets['test']['x'])
+        val_idxs = np.random.choice(num_samples, size=val_size, replace=False)
+        train_idxs = list(set(range(num_samples)) - set(val_idxs))
+        train = {'x': train_and_val['x'][train_idxs],
+                 'y': train_and_val['y'][train_idxs]}
+        val = {'x': train_and_val['x'][val_idxs],
+               'y': train_and_val['y'][val_idxs]}
+        return train, val
+
     def _create_data_generators(self):
-        from keras.preprocessing.image import ImageDataGenerator
-
-        self._data_generators['train'] = ImageDataGenerator(
-            featurewise_center=True,
-            featurewise_std_normalization=True)
-        self._data_generators['train'].fit(self._datasets['train']['x'])
-
-        self._data_generators['test'] = ImageDataGenerator(
-            featurewise_center=True,
-            featurewise_std_normalization=True)
-        self._data_generators['test'].fit(self._datasets['train']['x'])
-
-    def _plot_training_history(self, history):
-        plt.figure(1)
-
-        # summarize history for accuracy
-
-        plt.subplot(211)
-        plt.plot(history.history['acc'])
-        plt.plot(history.history['val_acc'])
-        plt.title('model accuracy')
-        plt.ylabel('accuracy')
-        plt.xlabel('epoch')
-        plt.legend(['train', 'val'], loc='upper left')
-
-        # summarize history for loss
-
-        plt.subplot(212)
-        plt.plot(history.history['loss'])
-        plt.plot(history.history['val_loss'])
-        plt.title('model loss')
-        plt.ylabel('loss')
-        plt.xlabel('epoch')
-        plt.legend(['train', 'val'], loc='upper left')
-
-        plt.savefig('logs/{}.png'.format(self._run_name))
-
-        plt.show()
+        for dataset in ('train', 'val', 'test'):
+            generator = ImageDataGenerator(
+                featurewise_center=True,
+                featurewise_std_normalization=True)
+            generator.fit(self._datasets['train']['x'])  # fit according to train set.
+            self._data_generators[dataset] = generator.flow(self._datasets[dataset]['x'],
+                                                            self._datasets[dataset]['y'],
+                                                            batch_size=self.c.batch_size)
 
 
 # def dummy_model(image_size):
