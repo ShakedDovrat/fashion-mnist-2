@@ -14,7 +14,7 @@ from models import *
 class Config(object):
     def __init__(self):
         self.image_size = (28, 28, 1)
-        self.model_func = shallow_model
+        self.model_func = deep_model
         self.model_name = self.model_func.__name__
         self.lr = 1e-2
         self.batch_size = 128
