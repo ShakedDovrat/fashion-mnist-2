@@ -69,19 +69,6 @@ class Model(object):
         print('Test results:')
         for name, value in zip(self.model.metrics_names, metrics_list):
             print('{} = {}'.format(name, value))
-
-    def _create_data_generators(self):
-        from keras.preprocessing.image import ImageDataGenerator
-
-        self._data_generators['train'] = ImageDataGenerator(
-            featurewise_center=True,
-            featurewise_std_normalization=True)
-        self._data_generators['train'].fit(self._datasets['train']['x'])
-
-        self._data_generators['test'] = ImageDataGenerator(
-            featurewise_center=True,
-            featurewise_std_normalization=True)
-        self._data_generators['test'].fit(self._datasets['train']['x'])
         
     @staticmethod
     def _get_run_name():
@@ -117,6 +104,19 @@ class Model(object):
         x, y = dataset
         x = np.reshape(x, list(x.shape) + [1])
         return {'x': x, 'y': y}
+
+    def _create_data_generators(self):
+        from keras.preprocessing.image import ImageDataGenerator
+
+        self._data_generators['train'] = ImageDataGenerator(
+            featurewise_center=True,
+            featurewise_std_normalization=True)
+        self._data_generators['train'].fit(self._datasets['train']['x'])
+
+        self._data_generators['test'] = ImageDataGenerator(
+            featurewise_center=True,
+            featurewise_std_normalization=True)
+        self._data_generators['test'].fit(self._datasets['train']['x'])
 
     def _plot_training_history(self, history):
         plt.figure(1)
