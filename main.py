@@ -42,13 +42,6 @@ class Model(object):
 
     def train(self):
         callbacks = self._get_callbacks()
-        # history = self.model.fit(self._datasets['train']['x'],
-        #                          self._datasets['train']['y'],
-        #                          batch_size=self.c.batch_size,
-        #                          epochs=self.c.epochs,
-        #                          verbose=1,
-        #                          callbacks=callbacks,
-        #                          validation_split=0.2)
         history = self.model.fit_generator(self._data_generators['train'],
                                            epochs=self.c.epochs,
                                            verbose=1,
@@ -82,12 +75,12 @@ class Model(object):
         self.model.compile(loss=loss, optimizer=optimizer, metrics=['accuracy'])
 
     def _get_callbacks(self):
-        checkpoint_writer = ModelCheckpoint('{}-weights.h5'.format(self._run_name),
+        checkpoint_writer = ModelCheckpoint(os.path.join(self._logs_dir, '{}-weights.h5'.format(self._run_name)),
                                             monitor='val_acc',
                                             verbose=1,
                                             save_best_only=True,
                                             mode='max')
-        reduce_lr = ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=10, verbose=1, epsilon=1e-3)
+        reduce_lr = ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=5, verbose=1, epsilon=1e-3)
         return [checkpoint_writer, reduce_lr]
 
     def _load_data(self):
