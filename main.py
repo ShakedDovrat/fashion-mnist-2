@@ -2,19 +2,19 @@ import datetime
 import os
 
 import numpy as np
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.datasets import fashion_mnist
 from keras.preprocessing.image import ImageDataGenerator
 
-from utils import ensure_dir, plot_training_history
+from utils import ensure_dir, plot_training_history, PrintModel
 from models import *
 
 
 class Config(object):
     def __init__(self):
         self.image_size = (28, 28, 1)
-        self.model_func = deep_model
+        self.model_func = dense_net_bc_40#dense_net_bc_wide_40
         self.model_name = self.model_func.__name__
         self.lr = 1e-2
         self.batch_size = 256
@@ -72,11 +72,13 @@ class Model(object):
         model = self.c.model_func(self.c.image_size)
         print('Using {}:'.format(self.c.model_name))
         model.summary()
+        PrintModel.layers_summary(model)
         return model
 
     def _compile_model(self):
         loss = 'sparse_categorical_crossentropy'  # 'categorical_crossentropy'
-        optimizer = Adam(lr=self.c.lr)
+        # optimizer = Adam(lr=self.c.lr)
+        optimizer = SGD(lr=self.c.lr, momentum=0.9, nesterov=True)
         self.model.compile(loss=loss, optimizer=optimizer, metrics=['accuracy'])
 
     def _get_callbacks(self):
@@ -98,6 +100,8 @@ class Model(object):
     def _reformat_dataset(dataset):
         x, y = dataset
         x = np.reshape(x, list(x.shape) + [1])
+        x = x / 255.0
+        # x = x - 127
         return {'x': x, 'y': y}
 
     def _split_train_val(self, train_and_val):
@@ -113,9 +117,10 @@ class Model(object):
 
     def _create_data_generators(self):
         for dataset in ('train', 'val', 'test'):
-            generator = ImageDataGenerator(
-                featurewise_center=True,
-                featurewise_std_normalization=True)
+            generator = ImageDataGenerator()
+                # zca_whitening=True,
+                # featurewise_center=True)#False)
+                # featurewise_std_normalization=False)#True)
             generator.fit(self._datasets['train']['x'])  # fit according to train set.
             self._data_generators[dataset] = generator.flow(self._datasets[dataset]['x'],
                                                             self._datasets[dataset]['y'],
